@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const bcrypt = require('bcrypt');
+
 
 const handleErrors = (err) => {
     let errors = {email: '', password: ''}
@@ -42,11 +44,23 @@ module.exports.signup_post = async(req, res) => {
         const errors = handleErrors(err)
         res.status(400).json({errors})
     }
-
-   
-    
+ 
 }
 
 module.exports.login_post = (req, res) => {
-    console.log('login post')
+    const {email, password} = req.body
+
+    User.findOne({email}).then(user => {
+        if(!user){
+            return res.status(404).json({email: 'User not found'})
+        }
+        bcrypt.compare(password, user.password).then(isMatch => {
+            if(isMatch){
+                res.json({message: 'Success'})
+            }
+            else{
+                return res.status(400).json({password: 'Password incorrect'})
+            }
+        })
+    })
 }
