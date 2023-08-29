@@ -1,6 +1,26 @@
 const User = require('../models/User');
 
+const handleErrors = (err) => {
+    let errors = {email: '', password: ''}
 
+    //duplicate error handling
+
+    if(err.code === 11000){
+        errors.email = 'That email is already registered';
+
+        return errors
+    }
+
+    //validation error handling
+    
+    if(err.message.includes('user validation failed')){
+        Object.values(err.errors).forEach(({properties}) => {
+            errors[properties.path] = properties.message
+        })
+    }   
+
+    return errors
+}
 
 module.exports.signup_get = (req, res) => {
     console.log('signup')
@@ -19,7 +39,8 @@ module.exports.signup_post = async(req, res) => {
         res.status(201).json(user)
     }
     catch(err){
-        console.log(err)
+        const errors = handleErrors(err)
+        res.status(400).json({errors})
     }
 
    
