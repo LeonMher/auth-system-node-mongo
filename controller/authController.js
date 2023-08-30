@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 
 const handleErrors = (err) => {
@@ -13,6 +14,8 @@ const handleErrors = (err) => {
         return errors
     }
 
+
+   
     //validation error handling
 
     if(err.message.includes('user validation failed')){
@@ -33,12 +36,21 @@ module.exports.login_get = (req, res) => {
     console.log('login')
 }
 
+const createToken = (id) => {
+    return jwt.sign({id}, '99percent', {
+        expiresIn: '1h'
+    })
+}
+
+
 module.exports.signup_post = async(req, res) => {
     const {email,password} = req.body
 
     try{
         const user = await User.create({email,password})
-        res.status(201).json(user)
+        const token = createToken(user._id)
+        res.cookie('jwtt', token, { domain: 'http://localhost:3001',sameSite: 'None', path: '/', secure: false });
+        res.status(201).json({user: user._id})
     }
     catch(err){
         const errors = handleErrors(err)
@@ -49,6 +61,7 @@ module.exports.signup_post = async(req, res) => {
 
 module.exports.login_post = (req, res) => {
     const {email, password} = req.body
+    res.cookie('asdasd')
 
     User.findOne({email}).then(user => {
         if(!user){
@@ -56,11 +69,16 @@ module.exports.login_post = (req, res) => {
         }
         bcrypt.compare(password, user.password).then(isMatch => {
             if(isMatch){
-                res.json({message: 'Success'})
+                
+
+                res.json({ message: 'Login successful' });
             }
             else{
                 return res.status(400).json({password: 'Password incorrect'})
             }
         })
+
+        res.cookie('authToken', 'user.id', { httpOnly: true, secure: false });
+        res.setHeader('authToken', 'user.id');
     })
 }
