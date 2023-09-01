@@ -14,8 +14,6 @@ const handleErrors = (err) => {
         return errors
     }
 
-
-   
     //validation error handling
 
     if(err.message.includes('user validation failed')){
@@ -28,12 +26,13 @@ const handleErrors = (err) => {
 }
 
 module.exports.signup_get = (req, res) => {
-    console.log('signup')
+    
     res.send('signed up')
 }
 
 module.exports.login_get = (req, res) => {
-    console.log('login')
+    
+    res.cookie('asd', 'qwe')
 }
 
 const createToken = (id) => {
@@ -49,8 +48,8 @@ module.exports.signup_post = async(req, res) => {
     try{
         const user = await User.create({email,password})
         const token = createToken(user._id)
-        res.cookie('jwtt', token, { domain: 'http://localhost:3001',sameSite: 'None', path: '/', secure: false });
-        res.status(201).json({user: user._id})
+        res.cookie('jwtt', token, {httpOnly: false});
+        res.send(user)
     }
     catch(err){
         const errors = handleErrors(err)
@@ -59,26 +58,29 @@ module.exports.signup_post = async(req, res) => {
  
 }
 
-module.exports.login_post = (req, res) => {
+module.exports.login_post = async (req, res) => {
     const {email, password} = req.body
-    res.cookie('asdasd')
+    
 
-    User.findOne({email}).then(user => {
-        if(!user){
-            return res.status(404).json({email: 'User not found'})
+    try {
+        const user = await User.findOne({ email });
+    
+        if (!user) {
+            return res.status(404).json({ email: 'User not found' });
         }
-        bcrypt.compare(password, user.password).then(isMatch => {
-            if(isMatch){
-                
-
-                res.json({ message: 'Login successful' });
-            }
-            else{
-                return res.status(400).json({password: 'Password incorrect'})
-            }
-        })
-
-        res.cookie('authToken', 'user.id', { httpOnly: true, secure: false });
-        res.setHeader('authToken', 'user.id');
-    })
+    
+        const isMatch = await bcrypt.compare(password, user.password);
+    
+        if (isMatch) {
+            const token = createToken(user._id);
+            res.cookie('jwtt', token, { httpOnly: false });
+            res.send(user);
+        } else {
+            return res.status(400).json({ password: 'Password incorrect' });
+        }
+    } catch (error) {
+        // Handle any unexpected errors here
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 }
