@@ -2,6 +2,10 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+const accountSid = 'AC673101fcbc0ab08a42956d57d229e32d';
+const authToken = 'b14c293d31da0396c63c131879632456';
+const client = require('twilio')(accountSid, authToken);
+
 
 const handleErrors = (err) => {
     let errors = {email: '', password: ''}
@@ -83,4 +87,21 @@ module.exports.login_post = async (req, res) => {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
+}
+
+
+module.exports.sendSms = async (req, res) => {
+
+    const {sms} = req.body
+    client.messages
+    .create({
+        body: sms,
+        from: '+14347322928',
+        to: '+37499212408'
+    })
+    .then(message => console.log(message.sid))
+    .catch(error => console.log(error));
+
+
+    res.send('sms sent successfully')
 }
