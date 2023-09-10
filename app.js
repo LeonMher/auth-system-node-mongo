@@ -4,6 +4,7 @@ const routes = require('./routes/authRoutes');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const connection = require('./db/db')
 
 
 
@@ -23,6 +24,34 @@ app.use(cookieParser());
 
 app.use(routes)
 
+
+app.post('/api/schedule', (req, res) => {
+  const dummyData = req.body
+
+  // Insert dummy data into the database
+  connection.query('INSERT INTO appointments SET ?', dummyData, (err, results) => {
+    if (err) {
+      console.error('Error inserting data:', err);
+      res.status(500).send('Error inserting data');
+    } else {
+      console.log('Dummy data inserted successfully');
+      res.status(200).send('Dummy data inserted');
+    }
+  });
+});
+
+
+app.get('/api/schedule', (req, res) => {
+  // Query the database to retrieve all records
+  connection.query('SELECT * FROM appointments', (error, results) => {
+    if (error) {
+      console.error('Error retrieving data:', error);
+      res.status(500).json({ error: 'Error retrieving data' });
+    } else {
+      res.status(200).json(results); // Send the retrieved data as JSON response
+    }
+  });
+});
 
 
 

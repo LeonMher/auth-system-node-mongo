@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const accountSid = 'AC673101fcbc0ab08a42956d57d229e32d';
-const authToken = 'b14c293d31da0396c63c131879632456';
+const authToken = 'a940fcc0676da8e6cc4257a0d184d218';
 const client = require('twilio')(accountSid, authToken);
 
 
@@ -33,6 +33,11 @@ module.exports.signup_get = (req, res) => {
     
     res.send('signed up')
 }
+
+// module.exports.schedule = (req, res) => {
+    
+//     console.log(req.body)
+// }
 
 module.exports.login_get = (req, res) => {
     

@@ -9,6 +9,7 @@ router.post('/api/signup', authController.signup_post)
 router.get('/api/login', authController.login_get)
 router.post('/api/login', authController.login_post)
 router.post('/sms', authController.sendSms)
+// router.post('/api/schedule', authController.schedule)
 
 
 module.exports = router;
