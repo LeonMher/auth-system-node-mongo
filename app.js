@@ -41,6 +41,49 @@ app.post('/api/schedule', (req, res) => {
 });
 
 
+app.put('/api/update-schedule/:id', (req, res) => {
+  const appointmentId = req.params.id;
+  const updatedData = req.body;
+
+  // Update the appointment data in the database
+  connection.query('UPDATE appointments SET ? WHERE id = ?', [updatedData, appointmentId], (err, results) => {
+    if (err) {
+      console.error('Error updating data:', err);
+      res.status(500).send('Error updating data');
+    } else {
+      if (results.affectedRows === 0) {
+        // No appointment with the specified ID found
+        res.status(404).send('Appointment not found');
+      } else {
+        console.log('Data updated successfully');
+        res.status(200).send('Data updated');
+      }
+    }
+  });
+});
+
+
+app.delete('/api/delete-schedule/:id', (req, res) => {
+  const appointmentId = req.params.id;
+
+  // Delete the appointment from the database
+  connection.query('DELETE FROM appointments WHERE id = ?', appointmentId, (err, results) => {
+    if (err) {
+      console.error('Error deleting data:', err);
+      res.status(500).send('Error deleting data');
+    } else {
+      if (results.affectedRows === 0) {
+        // No appointment with the specified ID found
+        res.status(404).send('Appointment not found');
+      } else {
+        console.log('Data deleted successfully');
+        res.status(200).send('Data deleted');
+      }
+    }
+  });
+});
+
+
 
 
 app.get('/api/schedule', (req, res) => {
