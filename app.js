@@ -41,6 +41,8 @@ app.post('/api/schedule', (req, res) => {
 });
 
 
+
+
 app.get('/api/schedule', (req, res) => {
   // Query the database to retrieve all records
   connection.query('SELECT * FROM appointments', (error, results) => {

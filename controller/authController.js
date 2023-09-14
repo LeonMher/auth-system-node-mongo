@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const accountSid = 'AC673101fcbc0ab08a42956d57d229e32d';
-const authToken = 'a940fcc0676da8e6cc4257a0d184d218';
+const authToken = '72694c5a3894f21846ae447ef76a201a';
 const client = require('twilio')(accountSid, authToken);
 
 
