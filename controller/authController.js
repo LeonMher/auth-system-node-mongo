@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-
 const accountSid = 'AC673101fcbc0ab08a42956d57d229e32d';
 const authToken = '72694c5a3894f21846ae447ef76a201a';
 const client = require('twilio')(accountSid, authToken);
@@ -50,36 +49,36 @@ const createToken = (id) => {
 }
 
 
-module.exports.signup_post = async(req, res) => {
-    const {email,password} = req.body
+module.exports.signup_post = async (req, res) => {
+    const { username, email, password, role } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    try{
-        
-    connection.query('INSERT INTO users (email, password) VALUES (?, ?)', [email, hashedPassword], (error, results) => {
+    try {
+      connection.query(
+        'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
+        [username, email, hashedPassword, role],
+        (error, results) => {
+          if (error) {
+            const errors = handleErrors(error);
+            console.error('Error inserting user into MySQL:', errors);
+            return res.status(500).json({ errors });
+          }
   
-        if (error) {
-        const errors = handleErrors(error)
-          console.error('Error inserting user into MySQL:', errors);
-          return res.status(500).json({ errors});
+          const userId = results.insertId;
+          const token = createToken(userId);
+          res.cookie('jwtt', token, { httpOnly: false });
+          res.send({ id: userId, email, role });
         }
-  
-        const userId = results.insertId;
-        const token = createToken(userId);
-        res.cookie('jwtt', token, { httpOnly: false });
-        res.send({ id: userId, email });
-})
-    } catch(err){
-        console.log(err, ' what it says')
-        const errors = handleErrors(err)
-        res.status(400).json({errors})
-        console.log(errors)
+      );
+    } catch (err) {
+      console.log(err, ' what it says');
+      const errors = handleErrors(err);
+      res.status(400).json({ errors });
+      console.log(errors);
     }
-}
+  };
 
 module.exports.login_post = (req, res) => {
     const { email, password } = req.body;
-  
-
   
       connection.query('SELECT * FROM users WHERE email = ?', [email], async (error, results) => {
   
@@ -99,23 +98,31 @@ module.exports.login_post = (req, res) => {
   
           if (isMatch) {
             const token = createToken(user.id);
+
+            // Check the user's role
+  if (user.role === 'employee') {
+    console.log(`Welcome, employee ${user.username}!`);
+  } else if (user.role === 'manager') {
+    console.log(`Welcome, manager ${user.username}!`);
+  } else {
+    console.log(`Welcome, user ${user.username}!`);
+  }
             res.cookie('jwtt', token, { httpOnly: false });
+            res.cookie('currentUserRole', user.role, { httpOnly: false });
+            res.cookie('currentUser', user.username, { httpOnly: false });
             res.send(user);
           } else {
             return res.status(400).json({ password: 'Password incorrect' });
           }
         } catch (error) {
-          // Handle any unexpected errors here
           console.error(error);
           res.status(500).json({ error: 'Internal Server Error' });
         }
       });
-    
   };
 
 
 module.exports.sendSms = async (req, res) => {
-
     const {sms} = req.body
     client.messages
     .create({
