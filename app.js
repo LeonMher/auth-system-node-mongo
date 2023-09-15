@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const connection = require('./db/db')
-
+const format = require('date-fns/format');
 
 
 const app = express();
@@ -97,6 +97,28 @@ app.get('/api/schedule', (req, res) => {
     }
   });
 });
+
+app.get('/api/gantt', (req, res) => {
+  connection.query('SELECT * FROM gantt', (error, results) => {
+    if (error) {
+      console.error('Error retrieving data:', error);
+      res.status(500).json({ error: 'Error retrieving data' });
+    } else {
+
+      const formattedResults = results.map((result) => {
+        return {
+          ...result, 
+          start_date: format(result.start_date, 'yyyy-MM-dd'), // Format start_date
+        };
+      });
+
+
+      res.status(200).json(formattedResults); // Send the retrieved data as JSON response
+    }
+  });
+});
+
+
 
 
 
