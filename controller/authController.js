@@ -54,18 +54,20 @@ module.exports.signup_post = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     try {
       connection.query(
-        'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
-        [username, email, hashedPassword, role],
+        'INSERT INTO users (username, role, email, password) VALUES (?, ?, ?, ?)',
+        [username, role, email, hashedPassword],
         (error, results) => {
           if (error) {
             const errors = handleErrors(error);
             console.error('Error inserting user into MySQL:', errors);
             return res.status(500).json({ errors });
           }
-  
+          
           const userId = results.insertId;
           const token = createToken(userId);
           res.cookie('jwtt', token, { httpOnly: false });
+          res.cookie('currentUserRole', role, { httpOnly: false });
+          res.cookie('currentUser', username, { httpOnly: false });
           res.send({ id: userId, email, role });
         }
       );
