@@ -2,9 +2,10 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const accountSid = 'AC673101fcbc0ab08a42956d57d229e32d';
-const authToken = '72694c5a3894f21846ae447ef76a201a';
+const authToken = 'd379580015f90c215d62472f0aca599d';
 const client = require('twilio')(accountSid, authToken);
 const connection = require('../db/db');
+
 
 const handleErrors = (err) => {
     let errors = {email: '', password: ''}
@@ -32,22 +33,26 @@ module.exports.signup_get = (req, res) => {
     res.send('signed up')
 }
 
-// module.exports.schedule = (req, res) => {
-    
-//     console.log(req.body)
-// }
-
-module.exports.login_get = (req, res) => {
-    
-    res.cookie('asd', 'qwe')
-}
-
+// Create JWTs
+// TODO: refactor
+// Try to find a better way implementing all these seperate functions into one single function
 const createToken = (id) => {
     return jwt.sign({id}, '99percent', {
         expiresIn: '1h'
     })
 }
 
+const createRole = (role) => {
+  return jwt.sign({role}, '99percent', {
+      expiresIn: '1h'
+  })
+}
+
+const createUserId = (userId) => {
+  return jwt.sign({userId}, '99percent', {
+      expiresIn: '1h'
+  })
+}
 
 module.exports.signup_post = async (req, res) => {
     const { username, email, password, role } = req.body;
@@ -65,14 +70,13 @@ module.exports.signup_post = async (req, res) => {
           
           const userId = results.insertId;
           const token = createToken(userId);
+          // TODO: make sure to change the JWT settings for production
           res.cookie('jwtt', token, { httpOnly: false });
-          res.cookie('currentUserRole', role, { httpOnly: false });
-          res.cookie('currentUser', username, { httpOnly: false });
+          // TODO: make sure it is necessary to send all the data
           res.send({ id: userId, email, role });
         }
       );
     } catch (err) {
-      console.log(err, ' what it says');
       const errors = handleErrors(err);
       res.status(400).json({ errors });
       console.log(errors);
@@ -94,24 +98,21 @@ module.exports.login_post = (req, res) => {
         }
   
         const user = results[0];
+        console.log(results, ' the USER in backend')
   
         try {
           const isMatch = await bcrypt.compare(password, user.password);
   
           if (isMatch) {
             const token = createToken(user.id);
+            const userRole = createRole(user.role)
+            const userId = createUserId(user.user_id)
 
-            // Check the user's role
-  if (user.role === 'employee') {
-    console.log(`Welcome, employee ${user.username}!`);
-  } else if (user.role === 'manager') {
-    console.log(`Welcome, manager ${user.username}!`);
-  } else {
-    console.log(`Welcome, user ${user.username}!`);
-  }
+            // TODO: find better solution
             res.cookie('jwtt', token, { httpOnly: false });
-            res.cookie('currentUserRole', user.role, { httpOnly: false });
-            res.cookie('currentUser', user.username, { httpOnly: false });
+            res.cookie('jwtrole', userRole, { httpOnly: false });
+            res.cookie('jwtuserid', userId, { httpOnly: false });
+           
             res.send(user);
           } else {
             return res.status(400).json({ password: 'Password incorrect' });
