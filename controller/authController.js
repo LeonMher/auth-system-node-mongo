@@ -48,19 +48,19 @@ const createRole = (role) => {
   })
 }
 
-const createUserId = (userId) => {
-  return jwt.sign({userId}, '99percent', {
+const createUserId = (employeeId) => {
+  return jwt.sign({employeeId}, '99percent', {
       expiresIn: '1h'
   })
 }
 
 module.exports.signup_post = async (req, res) => {
-    const { username, email, password, role } = req.body;
+    const { username, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
     try {
       connection.query(
-        'INSERT INTO users (username, role, email, password) VALUES (?, ?, ?, ?)',
-        [username, role, email, hashedPassword],
+        'INSERT INTO employees (username, email, password) VALUES (?, ?, ?)',
+        [username, email, hashedPassword],
         (error, results) => {
           if (error) {
             const errors = handleErrors(error);
@@ -73,7 +73,7 @@ module.exports.signup_post = async (req, res) => {
           // TODO: make sure to change the JWT settings for production
           res.cookie('jwtt', token, { httpOnly: false });
           // TODO: make sure it is necessary to send all the data
-          res.send({ id: userId, email, role });
+          res.send({ id: userId, email });
         }
       );
     } catch (err) {
@@ -86,7 +86,7 @@ module.exports.signup_post = async (req, res) => {
 module.exports.login_post = (req, res) => {
     const { email, password } = req.body;
   
-      connection.query('SELECT * FROM users WHERE email = ?', [email], async (error, results) => {
+      connection.query('SELECT * FROM employees WHERE email = ?', [email], async (error, results) => {
   
         if (error) {
           console.error('Error querying user from SQL:', error);
@@ -105,13 +105,14 @@ module.exports.login_post = (req, res) => {
   
           if (isMatch) {
             const token = createToken(user.id);
-            const userRole = createRole(user.role)
-            const userId = createUserId(user.user_id)
+            // const userRole = createRole(user.role)
+            const employeeId = createUserId(user.employee_id)
+
 
             // TODO: find better solution
             res.cookie('jwtt', token, { httpOnly: false });
-            res.cookie('jwtrole', userRole, { httpOnly: false });
-            res.cookie('jwtuserid', userId, { httpOnly: false });
+            // res.cookie('jwtrole', userRole, { httpOnly: false });
+            res.cookie('jwtuserid', employeeId, { httpOnly: false });
            
             res.send(user);
           } else {

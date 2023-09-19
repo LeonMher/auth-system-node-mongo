@@ -25,9 +25,8 @@ app.use(routes)
 app.post('/api/schedule/:id', (req, res) => {
   const data = req.body
   const userId = req.params.id; 
-
-  data.user_id = userId;
-  connection.query('INSERT INTO appointment SET ?', data, (err, results) => {
+  data.employee_id = userId;
+  connection.query('INSERT INTO Shifts SET ?', data, (err, results) => {
     if (err) {
       console.error('Error inserting data:', err);
       res.status(500).send('Error inserting data');
@@ -44,9 +43,8 @@ app.post('/api/schedule/:id', (req, res) => {
 app.put('/api/update-schedule/:id', (req, res) => {
   const appointmentId = req.params.id;
   const updatedData = req.body;
-
   // Update the appointment data in the database
-  connection.query('UPDATE appointment SET ? WHERE id = ?', [updatedData, appointmentId], (err, results) => {
+  connection.query('UPDATE shifts SET ? WHERE id = ?', [updatedData, appointmentId], (err, results) => {
     if (err) {
       console.error('Error updating data:', err);
       res.status(500).send('Error updating data');
@@ -67,7 +65,7 @@ app.delete('/api/delete-schedule/:id', (req, res) => {
   const appointmentId = req.params.id;
 
   // Delete the appointment from the database
-  connection.query('DELETE FROM appointments WHERE id = ?', appointmentId, (err, results) => {
+  connection.query('DELETE FROM Shifts WHERE id = ?', appointmentId, (err, results) => {
     if (err) {
       console.error('Error deleting data:', err);
       res.status(500).send('Error deleting data');
@@ -88,7 +86,7 @@ app.get('/api/schedule/:id', (req, res) => {
   // Query the database to retrieve all records
 
   const userId = req.params.id;
-  connection.query('SELECT * FROM appointment WHERE user_id = ?', userId, (error, results) => {
+  connection.query('SELECT * FROM Shifts', (error, results) => {
     if (error) {
       console.error('Error retrieving data:', error);
       res.status(500).json({ error: 'Error retrieving data' });
