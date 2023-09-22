@@ -83,6 +83,34 @@ module.exports.signup_post = async (req, res) => {
     }
   };
 
+
+module.exports.send_users = (req, res)=>{
+  connection.query('SELECT * FROM employees', async (error, results) => {
+  
+    if (error) {
+      console.error('Error querying user from SQL:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ email: 'User not found' });
+    }
+
+    const user = results.map((user)=> user);
+    console.log(results, ' the USER in backend')
+
+    try {   
+        res.send(user);
+      
+    
+      
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+}
+
 module.exports.login_post = (req, res) => {
     const { email, password } = req.body;
   

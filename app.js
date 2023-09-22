@@ -37,12 +37,136 @@ app.post('/api/schedule/:id', (req, res) => {
   });
 });
 
+
+app.get('/api/requestshifts', (req, res) => {
+  // Query the database to retrieve all records
+
+  const userId = req.params.id;
+  connection.query('SELECT * FROM shift_requests;', (error, results) => {
+    if (error) {
+      console.error('Error retrieving data:', error);
+      res.status(500).json({ error: 'Error retrieving data' });
+    } else {
+      console.log(results, ' requested items')
+      res.status(200).json(results); // Send the retrieved data as JSON response
+    }
+  });
+});
+
+
+//Approve the shifts that are in the wait list
+//Curretnly I'm not sure what happens with multiple requests. Can I approve them all by calling this API?
+//TODO: Implement rejecting the shifts in the list
+
+app.post('/api/approveandapplyshifts/:id', (req, res) => {
+  const userId = req.params.id;
+  connection.query(
+    `UPDATE shift_requests SET is_approved=1 WHERE employee_id=${userId}`,
+    (approveErr, approveResults) => {
+      if (approveErr) {
+        console.error('Error approving shifts:', approveErr);
+        res.status(500).send('Error approving shifts');
+      } else {
+        console.log('Shift approved successfully');
+        
+        connection.query(
+          `INSERT INTO shifts (title, allDay, notes, startDate, endDate, employee_id)
+           SELECT sr.title, sr.allDay, sr.notes, sr.startDate, sr.endDate, sr.employee_id
+           FROM shift_requests sr
+           WHERE sr.is_approved = TRUE;`,
+          (applyErr, applyResults) => {
+            if (applyErr) {
+              console.error('Error applying shifts:', applyErr);
+              res.status(500).send('Error applying shifts');
+            } else {
+
+              //We then clean the queue of requests
+              connection.query(
+                `DELETE FROM shift_requests WHERE is_approved = TRUE;`,
+                (applyErr, applyResults) => {
+                  if (applyErr) {
+                    console.error('Error applying shifts:', applyErr);
+                    res.status(500).send('Error applying shifts');
+                  } 
+                }
+              );
+
+              res.status(200).send('Shifts approved and applied successfully');
+            }
+          }
+        );
+      }
+    }
+  );
+});
+
+
+// Create a new request with desired date and information. This is going to go to the shift request list
+
+app.post('/api/request/:id', (req, res) => {
+  const data = req.body
+  const userId = req.params.id; 
+  data.employee_id = userId;
+  connection.query('INSERT INTO shift_requests SET ?', data, (err, results) => {
+    if (err) {
+      console.error('Error inserting data:', err);
+      res.status(500).send('Error inserting data');
+    } else {
+      res.status(200).send('Request sent successfully');
+    }
+  });
+});
+
+//This is for updating the shift. If the user drags the shift to somewhere else, it will be deleted 
+//and moved to the shift request list
+app.put('/api/request/:id', (req, res) => {
+  const data = req.body
+  const shiftId = req.params.id; 
+
+  delete data.id;
+  connection.query('SELECT * FROM shifts WHERE id = ?', shiftId, (err, results) => {
+    if (err) {
+      console.error('Error inserting data:', err);
+      res.status(500).send('Error inserting data');
+    } else {
+      if (results.length > 0) {
+        delete results[0].id;
+      }
+      results.startDate = data.startDate
+      results.endDate = data.endDate
+
+      // this modifies the object adding additional data so only startDate and endDate are the ones updated
+      const ultimateObj={
+        title: results[0].title,
+        allDay: results[0].allDay,
+        notes: results[0].notes,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        employee_id: results[0].employee_id
+      }
+
+      connection.query('INSERT INTO shift_requests SET ?', ultimateObj, (err, results) => {
+        if (err) {
+          console.error('Error inserting data:', err);
+          res.status(500).send('Error inserting data');
+        } else {
+          console.log('successfully updated request');
+          //to delete the shift to void duplication
+          deleteItem(shiftId)
+        }
+      })
+    }
+  });
+});
+
+
 // TODO: make sure this works properly
 // The user id might be required but is missing
 // Not sure
 app.put('/api/update-schedule/:id', (req, res) => {
   const appointmentId = req.params.id;
   const updatedData = req.body;
+
   // Update the appointment data in the database
   connection.query('UPDATE shifts SET ? WHERE id = ?', [updatedData, appointmentId], (err, results) => {
     if (err) {
@@ -54,17 +178,17 @@ app.put('/api/update-schedule/:id', (req, res) => {
         res.status(404).send('Appointment not found');
       } else {
         console.log('Data updated successfully');
-        res.status(200).send('Data updated');
+        deleteItem(appointmentId)
       }
     }
   });
 });
 
 
-app.delete('/api/delete-schedule/:id', (req, res) => {
-  const appointmentId = req.params.id;
+
 
   // Delete the appointment from the database
+  function deleteItem(appointmentId){
   connection.query('DELETE FROM Shifts WHERE id = ?', appointmentId, (err, results) => {
     if (err) {
       console.error('Error deleting data:', err);
@@ -75,11 +199,11 @@ app.delete('/api/delete-schedule/:id', (req, res) => {
         res.status(404).send('Appointment not found');
       } else {
         console.log('Data deleted successfully');
-        res.status(200).send('Data deleted');
       }
     }
   });
-});
+  }
+
 
 
 app.get('/api/schedule/:id', (req, res) => {
