@@ -166,7 +166,8 @@ app.put('/api/request/:id', (req, res) => {
 app.put('/api/update-schedule/:id', (req, res) => {
   const appointmentId = req.params.id;
   const updatedData = req.body;
-
+  console.log(updatedData, ' updated data')
+  console.log(appointmentId, ' appointmentId')
   // Update the appointment data in the database
   connection.query('UPDATE shifts SET ? WHERE id = ?', [updatedData, appointmentId], (err, results) => {
     if (err) {
@@ -178,7 +179,6 @@ app.put('/api/update-schedule/:id', (req, res) => {
         res.status(404).send('Appointment not found');
       } else {
         console.log('Data updated successfully');
-        deleteItem(appointmentId)
       }
     }
   });
