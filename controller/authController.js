@@ -54,6 +54,12 @@ const createUserId = (employeeId) => {
   })
 }
 
+const createUserName = (username) => {
+  return jwt.sign({username}, '99percent', {
+      expiresIn: '1h'
+  })
+}
+
 module.exports.signup_post = async (req, res) => {
     const { username, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -135,12 +141,14 @@ module.exports.login_post = (req, res) => {
             const token = createToken(user.id);
             // const userRole = createRole(user.role)
             const employeeId = createUserId(user.employee_id)
+            const employee_username = createUserName(user.username)
 
 
             // TODO: find better solution
             res.cookie('jwtt', token, { httpOnly: false });
             // res.cookie('jwtrole', userRole, { httpOnly: false });
             res.cookie('jwtuserid', employeeId, { httpOnly: false });
+            res.cookie('jwtusername', employee_username, { httpOnly: false });
            
             res.send(user);
           } else {

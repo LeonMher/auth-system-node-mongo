@@ -70,8 +70,8 @@ app.post('/api/approveandapplyshifts/:id', (req, res) => {
         console.log('Shift approved successfully');
         
         connection.query(
-          `INSERT INTO shifts (title, allDay, notes, startDate, endDate, employee_id)
-           SELECT sr.title, sr.allDay, sr.notes, sr.startDate, sr.endDate, sr.employee_id
+          `INSERT INTO shifts (title, userName, allDay, notes, startDate, endDate, employee_id)
+           SELECT sr.title, sr.userName, sr.allDay, sr.notes, sr.startDate, sr.endDate, sr.employee_id
            FROM shift_requests sr
            WHERE sr.is_approved = TRUE;`,
           (applyErr, applyResults) => {
@@ -134,9 +134,9 @@ app.put('/api/request/:id', (req, res) => {
       }
       results.startDate = data.startDate
       results.endDate = data.endDate
-
       // this modifies the object adding additional data so only startDate and endDate are the ones updated
       const ultimateObj={
+        userName: data.userName,
         title: results[0].title,
         allDay: results[0].allDay,
         notes: results[0].notes,
@@ -166,8 +166,6 @@ app.put('/api/request/:id', (req, res) => {
 app.put('/api/update-schedule/:id', (req, res) => {
   const appointmentId = req.params.id;
   const updatedData = req.body;
-  console.log(updatedData, ' updated data')
-  console.log(appointmentId, ' appointmentId')
   // Update the appointment data in the database
   connection.query('UPDATE shifts SET ? WHERE id = ?', [updatedData, appointmentId], (err, results) => {
     if (err) {
@@ -215,6 +213,9 @@ app.get('/api/schedule/:id', (req, res) => {
       console.error('Error retrieving data:', error);
       res.status(500).json({ error: 'Error retrieving data' });
     } else {
+      results.map((res)=>{
+        return res.title=res.userName
+      })
       res.status(200).json(results); // Send the retrieved data as JSON response
     }
   });
