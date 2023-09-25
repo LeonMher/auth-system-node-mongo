@@ -132,20 +132,23 @@ app.put('/api/request/:id', (req, res) => {
       if (results.length > 0) {
         delete results[0].id;
       }
-      results.startDate = data.startDate
-      results.endDate = data.endDate
+    
+      results.start = data.start
+      results.end = data.end
       // this modifies the object adding additional data so only startDate and endDate are the ones updated
       const ultimateObj={
         userName: data.userName,
         title: results[0].title,
         allDay: results[0].allDay,
         notes: results[0].notes,
-        startDate: data.startDate,
-        endDate: data.endDate,
+        start: data.start,
+        end: data.end,
         employee_id: results[0].employee_id
       }
 
-      connection.query('INSERT INTO shift_requests SET ?', ultimateObj, (err, results) => {
+      console.log(data, ' results')
+      
+      connection.query('INSERT INTO shifts SET ?', ultimateObj, (err, results) => {
         if (err) {
           console.error('Error inserting data:', err);
           res.status(500).send('Error inserting data');
