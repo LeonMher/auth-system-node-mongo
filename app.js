@@ -58,10 +58,10 @@ app.get('/api/requestshifts', (req, res) => {
 //Curretnly I'm not sure what happens with multiple requests. Can I approve them all by calling this API?
 //TODO: Implement rejecting the shifts in the list
 
-app.post('/api/approveandapplyshifts/:id', (req, res) => {
-  const userId = req.params.id;
+app.post('/api/approveandapplyshifts/:request_id', (req, res) => {
+  const userId = req.params.request_id;
   connection.query(
-    `UPDATE shift_requests SET is_approved=1 WHERE employee_id=${userId}`,
+    `UPDATE shift_requests SET is_approved=1 WHERE request_id=${userId}`,
     (approveErr, approveResults) => {
       if (approveErr) {
         console.error('Error approving shifts:', approveErr);
