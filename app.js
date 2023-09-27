@@ -70,8 +70,8 @@ app.post('/api/approveandapplyshifts/:request_id', (req, res) => {
         console.log('Shift approved successfully');
         
         connection.query(
-          `INSERT INTO shifts (title, userName, allDay, notes, startDate, endDate, employee_id)
-           SELECT sr.title, sr.userName, sr.allDay, sr.notes, sr.startDate, sr.endDate, sr.employee_id
+          `INSERT INTO shifts (title, userName, allDay, notes, start, end, employee_id)
+           SELECT sr.title, sr.userName, sr.allDay, sr.notes, sr.start, sr.end, sr.employee_id
            FROM shift_requests sr
            WHERE sr.is_approved = TRUE;`,
           (applyErr, applyResults) => {
@@ -117,6 +117,50 @@ app.post('/api/request/:id', (req, res) => {
   });
 });
 
+app.put('/api/request/:id', (req, res) => {
+  const data = req.body
+  const shiftId = req.params.id; 
+
+  delete data.id;
+  connection.query('SELECT * FROM shifts WHERE id = ?', shiftId, (err, results) => {
+    if (err) {
+      console.error('Error inserting data:', err);
+      res.status(500).send('Error inserting data');
+    } else {
+      if (results.length > 0) {
+        delete results[0].id;
+      }
+      results.start = data.start
+      results.end = data.end
+      
+      // this modifies the object adding additional data so only startDate and endDate are the ones updated
+      const ultimateObj={
+        userName: data.userName,
+        title: results[0].title,
+        allDay: results[0].allDay,
+        notes: results[0].notes,
+        start: data.start,
+        end: data.end,
+        employee_id: results[0].employee_id
+      }
+
+      console.log(data, ' results')
+      
+      connection.query('INSERT INTO shift_requests SET ?', ultimateObj, (err, results) => {
+        if (err) {
+          console.error('Error inserting data:', err);
+          res.status(500).send('Error inserting data');
+        } else {
+          console.log('successfully updated request');
+          //to delete the shift to void duplication
+          deleteItem(shiftId)
+        }
+      })
+    }
+  });
+});
+
+
 //This is for updating the shift. If the user drags the shift to somewhere else, it will be deleted 
 //and moved to the shift request list
 app.put('/api/request/:id', (req, res) => {
@@ -132,9 +176,9 @@ app.put('/api/request/:id', (req, res) => {
       if (results.length > 0) {
         delete results[0].id;
       }
-    
       results.start = data.start
       results.end = data.end
+      
       // this modifies the object adding additional data so only startDate and endDate are the ones updated
       const ultimateObj={
         userName: data.userName,
@@ -206,12 +250,29 @@ app.put('/api/update-schedule/:id', (req, res) => {
   }
 
 
+  app.get('/api/allschedules', (req, res) => {
+    // Query the database to retrieve all records
+  
+    const userId = req.params.id;
+    connection.query('SELECT * FROM Shifts', (error, results) => {
+      if (error) {
+        console.error('Error retrieving data:', error);
+        res.status(500).json({ error: 'Error retrieving data' });
+      } else {
+        results.map((res)=>{
+          return res.title=res.userName
+        })
+        res.status(200).json(results); // Send the retrieved data as JSON response
+      }
+    });
+  });
+
 
 app.get('/api/schedule/:id', (req, res) => {
   // Query the database to retrieve all records
 
   const userId = req.params.id;
-  connection.query('SELECT * FROM Shifts', (error, results) => {
+  connection.query('SELECT * FROM Shifts WHERE employee_id = ?', userId, (error, results) => {
     if (error) {
       console.error('Error retrieving data:', error);
       res.status(500).json({ error: 'Error retrieving data' });
