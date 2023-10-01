@@ -38,6 +38,94 @@ app.post('/api/schedule/:id', (req, res) => {
 });
 
 
+
+// Get the current date
+const currentDate = new Date();
+
+// Calculate the start date of the next week
+const nextWeekStartDate = new Date(currentDate);
+nextWeekStartDate.setDate(currentDate.getDate() + (7 - currentDate.getDay())); // Assuming Sunday is the first day of the week
+
+// Calculate the end date of the next week
+const nextWeekEndDate = new Date(nextWeekStartDate);
+nextWeekEndDate.setDate(nextWeekStartDate.getDate() + 6); // Assuming Sunday is the first day of the week
+
+// Loop through and log all dates between start and end dates, excluding Tuesdays, Thursdays, Saturdays, and Sundays
+const dateFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' }; // Updated format options
+const currentDateIterator = new Date(nextWeekStartDate);
+const dates = [];
+
+while (currentDateIterator <= nextWeekEndDate) {
+  // Check if the current day is not Tuesday, Thursday, Saturday, or Sunday
+  if (currentDateIterator.getDay() !== 2 &&  // Tuesday
+      currentDateIterator.getDay() !== 4 &&  // Thursday
+      currentDateIterator.getDay() !== 6 &&  // Saturday
+      currentDateIterator.getDay() !== 0) { // Sunday
+    const year = currentDateIterator.getFullYear();
+    const month = (currentDateIterator.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based
+    const day = currentDateIterator.getDate().toString().padStart(2, '0');
+    const additionalDay = (currentDateIterator.getDate() + 1).toString().padStart(2, '0');
+    const formattedDate = {dateStart: `${year}-${month}-${day}`,dateEnd: `${year}-${month}-${additionalDay}`, userNames: null, employeeId: null};
+    
+  
+    dates.push(formattedDate);
+  }
+  
+  // Increment the current date iterator by one day
+  currentDateIterator.setDate(currentDateIterator.getDate() + 1);
+}
+
+
+
+
+
+// Assuming you already have the `dates` array containing the formatted dates
+
+app.post('/api/template', (req, res) => {
+  // Loop through the dates array and insert each date individually
+  const insertQuery = 'INSERT INTO templates (start, end, userNames, employee_id) VALUES (?, ?, ?, ?)';
+
+  const insertPromises = dates.map((formattedDate) => {
+  
+   return new Promise((resolve, reject) => {
+      connection.query(insertQuery, [formattedDate.dateStart, formattedDate.dateEnd, formattedDate.userNames, formattedDate.employeeId], (error, result) => {
+        if (error) {
+          console.error('Error inserting date:', error);
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  });
+
+  // Execute all insert queries in parallel
+  Promise.all(insertPromises)
+    .then((results) => {
+      console.log(results.length, ' templates inserted');
+      res.status(200).json({ message: `${results.length} templates inserted` });
+    })
+    .catch((error) => {
+      console.error('Error inserting dates:', error);
+      res.status(500).json({ error: 'Error inserting dates' });
+    });
+
+
+    const insertShiftsQuery = 'INSERT INTO shifts (start, end) SELECT tmp.start, tmp.end FROM templates tmp';
+
+    connection.query(insertShiftsQuery, (error, result) => {
+      if (error) {
+        console.error('Error inserting shifts:', error);
+        res.status(500).json({ error: 'Error inserting shifts' });
+      } else {
+        console.log(result.affectedRows, ' shifts inserted');
+      }
+    });
+});
+
+
+
+
 app.get('/api/requestshifts', (req, res) => {
   // Query the database to retrieve all records
 
@@ -117,48 +205,6 @@ app.post('/api/request/:id', (req, res) => {
   });
 });
 
-app.put('/api/request/:id', (req, res) => {
-  const data = req.body
-  const shiftId = req.params.id; 
-
-  delete data.id;
-  connection.query('SELECT * FROM shifts WHERE id = ?', shiftId, (err, results) => {
-    if (err) {
-      console.error('Error inserting data:', err);
-      res.status(500).send('Error inserting data');
-    } else {
-      if (results.length > 0) {
-        delete results[0].id;
-      }
-      results.start = data.start
-      results.end = data.end
-      
-      // this modifies the object adding additional data so only startDate and endDate are the ones updated
-      const ultimateObj={
-        userName: data.userName,
-        title: results[0].title,
-        allDay: results[0].allDay,
-        notes: results[0].notes,
-        start: data.start,
-        end: data.end,
-        employee_id: results[0].employee_id
-      }
-
-      console.log(data, ' results')
-      
-      connection.query('INSERT INTO shift_requests SET ?', ultimateObj, (err, results) => {
-        if (err) {
-          console.error('Error inserting data:', err);
-          res.status(500).send('Error inserting data');
-        } else {
-          console.log('successfully updated request');
-          //to delete the shift to void duplication
-          deleteItem(shiftId)
-        }
-      })
-    }
-  });
-});
 
 
 //This is for updating the shift. If the user drags the shift to somewhere else, it will be deleted 
@@ -178,7 +224,8 @@ app.put('/api/request/:id', (req, res) => {
       }
       results.start = data.start
       results.end = data.end
-      
+
+     
       // this modifies the object adding additional data so only startDate and endDate are the ones updated
       const ultimateObj={
         userName: data.userName,
@@ -200,6 +247,54 @@ app.put('/api/request/:id', (req, res) => {
           console.log('successfully updated request');
           //to delete the shift to void duplication
           deleteItem(shiftId)
+        }
+      })
+    }
+  });
+});
+
+
+
+app.put('/api/requests/:id', (req, res) => {
+  const data = req.body
+  const shiftId = req.params.id
+  const selectedId = data.selectedId
+  
+  delete data.id;
+  connection.query('SELECT * FROM shifts WHERE id = ?', shiftId, (err, results) => {
+    if (err) {
+      console.error('Error inserting data:', err);
+      res.status(500).send('Error inserting data');
+    } else {
+      if (results.length > 0) {
+        delete results[0].id;
+      }
+      results.start = data.start
+      results.end = data.end
+
+    //  console.log(results[0].title, ' whats the title?')
+      
+      // this modifies the object adding additional data so only startDate and endDate are the ones updated
+      const ultimateObj={
+        userName: data.userName,
+        title: data.title,
+        allDay: data.allDay,
+        notes: data.notes,
+        start: data.start,
+        end: data.end,
+        employee_id: data.employee_id
+      }
+
+      console.log(data, ' results')
+      
+      connection.query('INSERT INTO shifts SET ?', ultimateObj, (err, results) => {
+        if (err) {
+          console.error('Error inserting data:', err);
+          res.status(500).send('Error inserting data');
+        } else {
+          console.log('successfully updated request');
+          //to delete the shift to void duplication
+          deleteItem(selectedId)
         }
       })
     }
